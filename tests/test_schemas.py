@@ -8,6 +8,7 @@ from greek_stylometer.schemas import (
     FeatureWeight,
     Passage,
     Prediction,
+    WorkPrediction,
 )
 
 
@@ -94,3 +95,42 @@ def test_activation_manifest_optional_tokens():
     )
     a2 = ActivationManifestEntry.from_json(a.to_json())
     assert a2.token_embeddings_file is None
+
+
+def test_prediction_backward_compat():
+    """Old JSONL without author_id/work_id still parses."""
+    old_json = '{"text":"x","author":"Galen","label":1,"predicted":1,"confidence":0.9,"split":"test","passage_idx":0}'
+    p = Prediction.from_json(old_json)
+    assert p.author_id == ""
+    assert p.work_id == ""
+    assert p.author == "Galen"
+
+
+def test_prediction_with_ids_round_trip():
+    p = Prediction(
+        text="some text",
+        author="Galen",
+        label=1,
+        predicted=1,
+        confidence=0.97,
+        split="test",
+        passage_idx=42,
+        author_id="tlg0057",
+        work_id="tlg001",
+    )
+    p2 = Prediction.from_json(p.to_json())
+    assert p2.author_id == "tlg0057"
+    assert p2.work_id == "tlg001"
+
+
+def test_work_prediction_round_trip():
+    wp = WorkPrediction(
+        author="Galen",
+        author_id="tlg0057",
+        work_id="tlg001",
+        predicted=1,
+        confidence=0.85,
+        n_chunks=10,
+        label=1,
+    )
+    assert WorkPrediction.from_json(wp.to_json()) == wp

@@ -158,5 +158,50 @@ def export_activations(
     typer.echo(f"Wrote {count} activation entries to {output_dir}")
 
 
+@app.command()
+def classify(
+    input_path: Annotated[Path, typer.Option("--input", exists=True, help="Input corpus JSONL (whole works).")],
+    model_dir: Annotated[Path, typer.Option(exists=True, help="Directory containing the saved model.")],
+    output: Annotated[Path, typer.Option(help="Output work-level predictions JSONL.")],
+    positive_author: Annotated[str, typer.Option(help="Author ID for the positive class (e.g. tlg0057).")],
+    max_tokens: Annotated[int, typer.Option(help="Chunk size in tokens.")] = 512,
+    overlap: Annotated[int | None, typer.Option(help="Token overlap between chunks. Defaults to max-tokens / 4.")] = None,
+    max_length: Annotated[int, typer.Option(help="Maximum token length for model inference.")] = 512,
+    batch_size: Annotated[int, typer.Option(help="Batch size for inference.")] = 64,
+) -> None:
+    """Classify whole works: chunk with overlap, predict, aggregate."""
+    import tempfile
+
+    from greek_stylometer.analysis.aggregation import aggregate_predictions
+    from greek_stylometer.models.bert import predict as do_predict
+    from greek_stylometer.preprocessing.chunking import chunk_corpus_file
+
+    effective_overlap = overlap if overlap is not None else max_tokens // 4
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        chunked_path = tmp / "chunked.jsonl"
+        predictions_path = tmp / "chunk_predictions.jsonl"
+
+        typer.echo(f"Chunking with max_tokens={max_tokens}, overlap={effective_overlap}")
+        n_chunks = chunk_corpus_file(
+            input_path, chunked_path, str(model_dir),
+            max_tokens=max_tokens, overlap=effective_overlap,
+        )
+        typer.echo(f"  {n_chunks} chunks")
+
+        typer.echo("Running inference on chunks")
+        n_preds = do_predict(
+            chunked_path, model_dir, predictions_path,
+            positive_author, max_length, batch_size,
+        )
+        typer.echo(f"  {n_preds} predictions")
+
+        typer.echo("Aggregating to work level")
+        summary = aggregate_predictions(predictions_path, output)
+
+    typer.echo(summary)
+
+
 def main() -> None:
     app()

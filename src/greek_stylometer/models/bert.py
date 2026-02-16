@@ -43,6 +43,8 @@ def _passages_to_dataset(
             "label": [1 if p.author_id == positive_author_id else 0 for p in passages],
             "author": [p.author for p in passages],
             "passage_idx": [p.passage_idx for p in passages],
+            "author_id": [p.author_id for p in passages],
+            "work_id": [p.work_id for p in passages],
         }
     )
 
@@ -109,6 +111,8 @@ def _write_predictions(
                 confidence=float(confidences[i]),
                 split=split,
                 passage_idx=raw_dataset[i]["passage_idx"],
+                author_id=raw_dataset[i]["author_id"],
+                work_id=raw_dataset[i]["work_id"],
             )
             f.write(pred.to_json() + "\n")
             count += 1

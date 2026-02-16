@@ -40,6 +40,31 @@ class Prediction:
     confidence: float
     split: str
     passage_idx: int
+    author_id: str = ""
+    work_id: str = ""
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self), ensure_ascii=False)
+
+    @classmethod
+    def from_json(cls, line: str) -> Self:
+        d = json.loads(line)
+        d.setdefault("author_id", "")
+        d.setdefault("work_id", "")
+        return cls(**d)
+
+
+@dataclass
+class WorkPrediction:
+    """An aggregated prediction for an entire work."""
+
+    author: str
+    author_id: str
+    work_id: str
+    predicted: int
+    confidence: float
+    n_chunks: int
+    label: int
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), ensure_ascii=False)
