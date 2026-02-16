@@ -1,0 +1,30 @@
+[project]
+name = "greek-stylometer"
+version = "0.1.0"
+description = "Authorship attribution and interpretability toolkit for Ancient Greek texts"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "typer>=0.15",
+    "datasets>=2.0",
+    "lime>=0.2",
+    "lxml>=6.0.2",
+    "scikit-learn>=1.4",
+    "torch>=2.0",
+    "transformers>=4.40",
+]
+
+[project.scripts]
+greek-stylometer = "greek_stylometer.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "jupyter>=1.1.1",
+    "lxml-stubs>=0.5",
+    "pytest>=8.0",
+    "pyright>=1.1.408",
+]
