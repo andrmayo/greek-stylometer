@@ -1,0 +1,11 @@
+.venv/
+.git/
+*.egg-info/
+dist/
+build/
+__pycache__/
+runs/
+*.npy
+*.jsonl
+notebooks/
+.pytest_cache/
