@@ -169,7 +169,8 @@ class First1KGreekReader:
 def ingest(
     input_paths: list[Path],
     output: Path,
-    strip_section_numbers: bool = False,
+    strip_section_numbers: bool = True,
+    iota_adscript: bool = True,
 ) -> int:
     """Ingest First1KGreek author directories into a JSONL file.
 
@@ -177,12 +178,15 @@ def ingest(
         input_paths: Author-level directories (e.g. ``data/tlg0057/``).
         output: Path to write the output JSONL file.
         strip_section_numbers: Remove bracketed section numbers from text.
+        iota_adscript: Convert iota subscripts to adscripts (default True).
 
     Returns:
         Number of passages written.
     """
     from greek_stylometer.corpus.jsonl import write_corpus
     from greek_stylometer.preprocessing.normalize import (
+        iota_subscript_to_adscript,
+        strip_editorial_punctuation,
         strip_section_numbers as do_strip,
     )
 
@@ -191,6 +195,9 @@ def ingest(
     def passages():
         for path in input_paths:
             for passage in reader.read(path):
+                if iota_adscript:
+                    passage.text = iota_subscript_to_adscript(passage.text)
+                passage.text = strip_editorial_punctuation(passage.text)
                 if strip_section_numbers:
                     passage.text = do_strip(passage.text)
                 yield passage
