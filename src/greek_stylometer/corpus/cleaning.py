@@ -9,6 +9,11 @@ import re
 from collections.abc import Callable
 
 
+def strip_bom(xml: str) -> str:
+    """Remove UTF-8 BOM (U+FEFF) if present."""
+    return xml.lstrip("\ufeff")
+
+
 def remove_line_breaks(xml: str) -> str:
     """Remove <lb/> line break elements."""
     return re.sub(r"<lb.*?/>", " ", xml)
@@ -75,6 +80,7 @@ def normalize_whitespace(xml: str) -> str:
 
 # The full pipeline in application order, matching author_reader.ipynb.
 CLEANING_STEPS: list[tuple[str, Callable[[str], str]]] = [
+    ("strip_bom", strip_bom),
     ("remove_line_breaks", remove_line_breaks),
     ("unwrap_supplied", unwrap_supplied),
     ("unwrap_add", unwrap_add),
