@@ -25,10 +25,14 @@ RUN echo "deb https://packages.cloud.google.com/apt gcsfuse-noble main" \
     apt-get update && apt-get install -y --no-install-recommends gcsfuse && \
     rm -rf /var/lib/apt/lists/*
 
-# Install PyTorch with CUDA 12.4 support, then the package
+# Install PyTorch and dependencies (cached unless pyproject.toml changes)
 WORKDIR /app
-COPY . .
+COPY pyproject.toml .
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu124 && \
     pip install --no-cache-dir .
+
+# Copy source code (only this layer rebuilds on code changes)
+COPY . .
+RUN pip install --no-cache-dir --no-deps .
 
 ENTRYPOINT ["python", "-m", "greek_stylometer.vertex_wrapper"]
