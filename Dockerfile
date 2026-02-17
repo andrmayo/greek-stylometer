@@ -18,12 +18,11 @@ RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.13 1 &
 RUN python -m ensurepip --upgrade && \
     python -m pip install --no-cache-dir --upgrade pip
 
-# gcsfuse for transparent GCS access
-RUN echo "deb https://packages.cloud.google.com/apt gcsfuse-noble main" \
-      > /etc/apt/sources.list.d/gcsfuse.list && \
-    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
-    apt-get update && apt-get install -y --no-install-recommends gcsfuse && \
-    rm -rf /var/lib/apt/lists/*
+# Install gcloud CLI for GCS file transfers
+RUN curl -fsSL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz \
+      | tar -xz -C /opt && \
+    /opt/google-cloud-sdk/install.sh --quiet --path-update=true
+ENV PATH="/opt/google-cloud-sdk/bin:${PATH}"
 
 # Install PyTorch and dependencies (cached unless pyproject.toml changes)
 WORKDIR /app

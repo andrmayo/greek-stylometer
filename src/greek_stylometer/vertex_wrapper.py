@@ -1,8 +1,8 @@
 """Vertex AI wrapper for greek-stylometer.
 
 Bridges Vertex AI conventions (AIP_* env vars, GCS paths) to the
-existing CLI. Mounts GCS buckets via gcsfuse for transparent local
-filesystem access.
+existing CLI. Downloads GCS inputs to local paths before running,
+and uploads local outputs to GCS after.
 
 Usage inside container::
 
@@ -10,10 +10,6 @@ Usage inside container::
         --input gs://my-bucket/corpus.jsonl \
         --output-dir gs://my-bucket/output \
         --positive-author tlg0057
-
-GCS paths (gs://bucket/path) are automatically mounted via gcsfuse
-under /gcs/bucket/ and rewritten to local paths. If AIP_MODEL_DIR
-is set and --output-dir is not provided, the model is written there.
 """
 
 import os
@@ -21,67 +17,83 @@ import subprocess
 import sys
 from pathlib import Path
 
+# CLI flags that point to input files/dirs
+_INPUT_FLAGS = {"--input", "--model-dir"}
+# CLI flags that point to output files/dirs
+_OUTPUT_FLAGS = {"--output", "--output-dir"}
 
-def _mount_gcs_bucket(bucket: str) -> Path:
-    """Mount a GCS bucket via gcsfuse, returning the local mount point."""
-    mount_point = Path(f"/gcs/{bucket}")
-    if mount_point.is_mount():
-        return mount_point
 
-    mount_point.mkdir(parents=True, exist_ok=True)
+def _gcs_copy_down(gcs_path: str, local_path: Path) -> None:
+    """Download a GCS file or directory to a local path."""
+    local_path.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(
-        ["gcsfuse", "--implicit-dirs", bucket, str(mount_point)],
+        ["gcloud", "storage", "cp", "-r", gcs_path, str(local_path)],
         check=True,
     )
-    return mount_point
 
 
-def _rewrite_gcs_path(arg: str) -> str:
-    """If arg is a gs:// path, mount the bucket and return the local path."""
-    if not arg.startswith("gs://"):
-        return arg
-
-    # gs://bucket/some/path → bucket, some/path
-    without_scheme = arg[5:]
-    slash_idx = without_scheme.find("/")
-    if slash_idx == -1:
-        bucket = without_scheme
-        rest = ""
-    else:
-        bucket = without_scheme[:slash_idx]
-        rest = without_scheme[slash_idx + 1:]
-
-    mount_point = _mount_gcs_bucket(bucket)
-    return str(mount_point / rest)
-
-
-def _inject_vertex_defaults(args: list[str]) -> list[str]:
-    """Apply Vertex AI env var defaults when CLI flags are absent."""
-    aip_model_dir = os.environ.get("AIP_MODEL_DIR")
-
-    # If --output-dir not provided and AIP_MODEL_DIR is set, inject it
-    if aip_model_dir and "--output-dir" not in args:
-        local_path = _rewrite_gcs_path(aip_model_dir)
-        args = args + ["--output-dir", local_path]
-
-    return args
+def _gcs_copy_up(local_path: Path, gcs_path: str) -> None:
+    """Upload a local file or directory to GCS."""
+    subprocess.run(
+        ["gcloud", "storage", "cp", "-r", str(local_path), gcs_path],
+        check=True,
+    )
 
 
 def main() -> None:
     args = sys.argv[1:]
 
-    # Rewrite any gs:// paths in arguments
-    args = [_rewrite_gcs_path(a) for a in args]
+    # Track GCS output paths for upload after the command finishes
+    uploads: list[tuple[Path, str]] = []
+    local_dir = Path("/tmp/greek-stylometer")
+    local_dir.mkdir(parents=True, exist_ok=True)
+    counter = 0
 
     # Apply Vertex AI defaults
-    args = _inject_vertex_defaults(args)
+    aip_model_dir = os.environ.get("AIP_MODEL_DIR")
+    if aip_model_dir and "--output-dir" not in args:
+        args = args + ["--output-dir", aip_model_dir]
+
+    # Rewrite gs:// paths: download inputs, map outputs to local paths
+    rewritten: list[str] = []
+    for i, arg in enumerate(args):
+        if not arg.startswith("gs://"):
+            rewritten.append(arg)
+            continue
+
+        prev = args[i - 1] if i > 0 else ""
+
+        if prev in _INPUT_FLAGS:
+            local_path = local_dir / f"input_{counter}"
+            counter += 1
+            print(f"Downloading {arg} → {local_path}")
+            _gcs_copy_down(arg, local_path)
+            rewritten.append(str(local_path))
+        elif prev in _OUTPUT_FLAGS:
+            local_path = local_dir / f"output_{counter}"
+            counter += 1
+            local_path.mkdir(parents=True, exist_ok=True)
+            uploads.append((local_path, arg))
+            rewritten.append(str(local_path))
+        else:
+            # Unknown flag with gs:// path — download as input
+            local_path = local_dir / f"input_{counter}"
+            counter += 1
+            print(f"Downloading {arg} → {local_path}")
+            _gcs_copy_down(arg, local_path)
+            rewritten.append(str(local_path))
 
     # Forward to the CLI
-    sys.argv = ["greek-stylometer"] + args
+    sys.argv = ["greek-stylometer"] + rewritten
 
     from greek_stylometer.cli import main as cli_main
 
     cli_main()
+
+    # Upload outputs to GCS
+    for local_path, gcs_path in uploads:
+        print(f"Uploading {local_path} → {gcs_path}")
+        _gcs_copy_up(local_path, gcs_path)
 
 
 if __name__ == "__main__":
