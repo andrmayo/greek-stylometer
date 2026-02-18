@@ -130,12 +130,7 @@ def train(
     corpus_path: Path,
     output_dir: Path,
     positive_author_id: str,
-    model_name: str = "pranaydeeps/Ancient-Greek-BERT",
-    max_length: int = 512,
-    learning_rate: float = 2e-5,
-    train_batch_size: int = 64,
-    num_epochs: int = 6,
-    seed: int = 12345,
+    cfg: TrainConfig = TrainConfig(),
 ) -> Path:
     """Train a binary BERT classifier.
 
@@ -147,24 +142,11 @@ def train(
         corpus_path: Input corpus JSONL file.
         output_dir: Directory to save model, checkpoints, and predictions.
         positive_author_id: Author ID for the positive class (e.g. "tlg0057").
-        model_name: HuggingFace model name or path.
-        max_length: Maximum token length for tokenization.
-        learning_rate: Learning rate for the optimizer.
-        train_batch_size: Training batch size per device.
-        num_epochs: Number of training epochs.
-        seed: Random seed for shuffling and training.
+        cfg: Training configuration. Uses TrainConfig defaults if not provided.
 
     Returns:
         Path to the saved model directory.
     """
-    cfg = TrainConfig(
-        model_name=model_name,
-        max_length=max_length,
-        learning_rate=learning_rate,
-        train_batch_size=train_batch_size,
-        num_epochs=num_epochs,
-        seed=seed,
-    )
 
     # Load data
     passages = list(read_corpus(corpus_path))
@@ -208,7 +190,6 @@ def train(
         learning_rate=cfg.learning_rate,
         per_device_train_batch_size=cfg.train_batch_size,
         per_device_eval_batch_size=cfg.eval_batch_size,
-        gradient_accumulation_steps=cfg.gradient_accumulation_steps,
         num_train_epochs=cfg.num_epochs,
         eval_strategy="steps",
         eval_steps=cfg.eval_steps,

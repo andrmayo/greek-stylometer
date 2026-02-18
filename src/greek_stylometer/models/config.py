@@ -16,7 +16,6 @@ class TrainConfig:
     learning_rate: float = 2e-5
     train_batch_size: int = 16
     eval_batch_size: int = 16
-    gradient_accumulation_steps: int = 4
     num_epochs: int = 6
     eval_steps: int = 25
     save_steps: int = 100

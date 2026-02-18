@@ -11,6 +11,10 @@ from typing import Annotated, assert_never
 
 import typer
 
+from greek_stylometer.models.config import TrainConfig
+
+_TRAIN_DEFAULTS = TrainConfig()
+
 app = typer.Typer(
     help="Authorship attribution and interpretability toolkit for Ancient Greek texts."
 )
@@ -103,21 +107,25 @@ def train(
     ],
     model_name: Annotated[
         str, typer.Option(help="HuggingFace model name or path.")
-    ] = "pranaydeeps/Ancient-Greek-BERT",
-    max_length: Annotated[int, typer.Option(help="Maximum token length.")] = 512,
-    learning_rate: Annotated[float, typer.Option(help="Learning rate.")] = 2e-5,
-    train_batch_size: Annotated[int, typer.Option(help="Training batch size.")] = 64,
-    num_epochs: Annotated[int, typer.Option(help="Number of training epochs.")] = 6,
-    seed: Annotated[int, typer.Option(help="Random seed.")] = 12345,
+    ] = _TRAIN_DEFAULTS.model_name,
+    max_length: Annotated[
+        int, typer.Option(help="Maximum token length.")
+    ] = _TRAIN_DEFAULTS.max_length,
+    learning_rate: Annotated[
+        float, typer.Option(help="Learning rate.")
+    ] = _TRAIN_DEFAULTS.learning_rate,
+    train_batch_size: Annotated[
+        int, typer.Option(help="Training batch size.")
+    ] = _TRAIN_DEFAULTS.train_batch_size,
+    num_epochs: Annotated[
+        int, typer.Option(help="Number of training epochs.")
+    ] = _TRAIN_DEFAULTS.num_epochs,
+    seed: Annotated[int, typer.Option(help="Random seed.")] = _TRAIN_DEFAULTS.seed,
 ) -> None:
     """Train a binary BERT classifier on a corpus JSONL."""
     from greek_stylometer.models.bert import train as do_train
 
-    typer.echo(f"Training {model_name} on {input_path}")
-    model_dir = do_train(
-        input_path,
-        output_dir,
-        positive_author,
+    cfg = TrainConfig(
         model_name=model_name,
         max_length=max_length,
         learning_rate=learning_rate,
@@ -125,6 +133,8 @@ def train(
         num_epochs=num_epochs,
         seed=seed,
     )
+    typer.echo(f"Training {cfg.model_name} on {input_path}")
+    model_dir = do_train(input_path, output_dir, positive_author, cfg)
     typer.echo(f"Model saved to {model_dir}")
 
 
