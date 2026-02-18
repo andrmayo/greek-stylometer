@@ -208,6 +208,7 @@ def train(
         learning_rate=cfg.learning_rate,
         per_device_train_batch_size=cfg.train_batch_size,
         per_device_eval_batch_size=cfg.eval_batch_size,
+        gradient_accumulation_steps=cfg.gradient_accumulation_steps,
         num_train_epochs=cfg.num_epochs,
         eval_strategy="steps",
         eval_steps=cfg.eval_steps,
