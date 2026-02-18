@@ -24,13 +24,14 @@ RUN curl -fsSL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google
     /opt/google-cloud-sdk/install.sh --quiet --path-update=true
 ENV PATH="/opt/google-cloud-sdk/bin:${PATH}"
 
-# Install PyTorch and dependencies (cached unless pyproject.toml changes)
+# Install dependencies (cached unless pyproject.toml changes)
 WORKDIR /app
-COPY pyproject.toml .
+COPY pyproject.toml README.md ./
+RUN mkdir -p src/greek_stylometer && touch src/greek_stylometer/__init__.py
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu124 && \
     pip install --no-cache-dir .
 
-# Copy source code (only this layer rebuilds on code changes)
+# Copy source code and reinstall the package (only this layer rebuilds on code changes)
 COPY . .
 RUN pip install --no-cache-dir --no-deps .
 
