@@ -88,7 +88,13 @@ def main() -> None:
 
     from greek_stylometer.cli import main as cli_main
 
-    cli_main()
+    # Typer/Click calls sys.exit(0) on success (standalone_mode=True),
+    # so we catch SystemExit to ensure uploads still run.
+    try:
+        cli_main()
+    except SystemExit as e:
+        if e.code != 0:
+            raise
 
     # Upload outputs to GCS
     for local_path, gcs_path in uploads:
