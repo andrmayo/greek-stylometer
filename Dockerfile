@@ -16,7 +16,7 @@ RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.13 1 &
 
 # Install pip
 RUN python -m ensurepip --upgrade && \
-    python -m pip install --no-cache-dir --upgrade pip
+    python -m pip install --no-cache-dir --root-user-action=ignore --upgrade pip
 
 # Install gcloud CLI for GCS file transfers
 RUN curl -fsSL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz \
@@ -28,11 +28,11 @@ ENV PATH="/opt/google-cloud-sdk/bin:${PATH}"
 WORKDIR /app
 COPY pyproject.toml README.md ./
 RUN mkdir -p src/greek_stylometer && touch src/greek_stylometer/__init__.py
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu124 && \
-    pip install --no-cache-dir .
+RUN pip install --no-cache-dir --root-user-action=ignore torch --index-url https://download.pytorch.org/whl/cu124 && \
+    pip install --no-cache-dir --root-user-action=ignore .
 
 # Copy source code and reinstall the package (only this layer rebuilds on code changes)
 COPY . .
-RUN pip install --no-cache-dir --no-deps .
+RUN pip install --no-cache-dir --root-user-action=ignore --no-deps .
 
 ENTRYPOINT ["python", "-m", "greek_stylometer.vertex_wrapper"]
