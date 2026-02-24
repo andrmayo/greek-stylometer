@@ -15,10 +15,11 @@ class TrainConfig:
     learning_rate: float = 2e-5
     train_batch_size: int = 16
     eval_batch_size: int = 16
-    num_epochs: int = 6
+    num_epochs: int = 6  # ~ 450 steps per epoch
     eval_steps: int = 25
     save_steps: int = 100
     seed: int = 12345
     train_ratio: float = 0.8
     dev_ratio: float = 0.1
+    early_stopping_patience: int = 10
     train_log_dir: Path | None = None  # None for same dir as general logging

@@ -17,6 +17,7 @@ from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
     DataCollatorWithPadding,
+    EarlyStoppingCallback,
     EvalPrediction,
     Trainer,
     TrainingArguments,
@@ -207,15 +208,22 @@ def train(
         eval_strategy="steps",
         eval_steps=cfg.eval_steps,
         save_strategy="steps",
-        save_steps=cfg.save_steps,
+        save_steps=cfg.eval_steps,
+        save_total_limit=3,
         seed=cfg.seed,
         load_best_model_at_end=True,
-        metric_for_best_model="f1",
-        greater_is_better=True,
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
         logging_dir=str(cfg.train_log_dir)
         if cfg.train_log_dir
         else str(output_dir / "logs"),
     )
+
+    callbacks = []
+    if cfg.early_stopping_patience > 0:
+        callbacks.append(
+            EarlyStoppingCallback(early_stopping_patience=cfg.early_stopping_patience)
+        )
 
     trainer = Trainer(
         model=model,
@@ -225,6 +233,7 @@ def train(
         processing_class=tokenizer,
         data_collator=DataCollatorWithPadding(tokenizer=tokenizer),
         compute_metrics=_compute_metrics,
+        callbacks=callbacks,
     )
 
     trainer.train()
