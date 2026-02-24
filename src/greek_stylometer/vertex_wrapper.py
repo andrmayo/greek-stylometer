@@ -1,4 +1,4 @@
-"""Vertex AI wrapper for greek-stylometer.
+"""Vertex AI wrapper for greek-stylometer training.
 
 Bridges Vertex AI conventions (AIP_* env vars, GCS paths) to the
 existing CLI. Downloads GCS inputs to local paths before running,
@@ -16,6 +16,8 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+
+from greek_stylometer.cli import main as cli_main
 
 # CLI flags that point to input files/dirs
 _INPUT_FLAGS = {"--input", "--model-dir"}
@@ -86,7 +88,9 @@ def main() -> None:
     # Forward to the CLI
     sys.argv = ["greek-stylometer"] + rewritten
 
-    from greek_stylometer.cli import main as cli_main
+    # Add logging dir usable by Vertex AI tensorboard
+    if aip_tensorboard_log_dir := os.environ.get("AIP_TENSORBOARD_LOG_DIR"):
+        rewritten.extend(["--logging-dir", aip_tensorboard_log_dir])
 
     # Typer/Click calls sys.exit(0) on success (standalone_mode=True),
     # so we catch SystemExit to ensure uploads still run.

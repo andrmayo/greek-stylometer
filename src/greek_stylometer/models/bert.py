@@ -6,8 +6,9 @@ a saved model directory and test-set predictions in JSONL.
 """
 
 import logging
+from functools import partial
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Callable, Iterator, cast
 
 import numpy as np
 from datasets import Dataset
@@ -21,9 +22,9 @@ from transformers import (
     TrainingArguments,
 )
 
-from greek_stylometer.corpus.jsonl import read_corpus
+from greek_stylometer.corpus.jsonl import read_corpus, stream_passage_to_dict
 from greek_stylometer.models.config import TrainConfig
-from greek_stylometer.schemas import Prediction
+from greek_stylometer.schemas import Passage, Prediction
 
 logger = logging.getLogger(__name__)
 
@@ -32,20 +33,28 @@ logger = logging.getLogger(__name__)
 # Helpers
 # ---------------------------------------------------------------------------
 
+PassageFactory = Callable[[], Iterator[Passage]]
+
+
+def path_to_dataset(path: Path, positive_author_id: str) -> Dataset:
+    factory: PassageFactory = partial(read_corpus, path)
+    return _passages_to_dataset(factory, positive_author_id)
+
 
 def _passages_to_dataset(
-    passages: list, positive_author_id: str
+    passage_factory: PassageFactory, positive_author_id: str
 ) -> Dataset:
     """Convert Passage records to a HuggingFace Dataset with binary labels."""
-    return Dataset.from_dict(
-        {
-            "text": [p.text for p in passages],
-            "label": [1 if p.author_id == positive_author_id else 0 for p in passages],
-            "author": [p.author for p in passages],
-            "passage_idx": [p.passage_idx for p in passages],
-            "author_id": [p.author_id for p in passages],
-            "work_id": [p.work_id for p in passages],
-        }
+
+    def gen(pf: PassageFactory, pos_auth_id: str):
+        passages = pf()  # Created within worker for Dataset multiprocessing
+        yield from stream_passage_to_dict(passages, pos_auth_id)
+
+    return cast(
+        Dataset,
+        Dataset.from_generator(
+            gen, gen_kwargs={"pf": passage_factory, "pos_auth_id": positive_author_id}
+        ),
     )
 
 
@@ -130,7 +139,8 @@ def train(
     corpus_path: Path,
     output_dir: Path,
     positive_author_id: str,
-    cfg: TrainConfig = TrainConfig(),
+    cfg: TrainConfig | None = None,
+    exclude_work: str | None = None,
 ) -> Path:
     """Train a binary BERT classifier.
 
@@ -148,11 +158,16 @@ def train(
         Path to the saved model directory.
     """
 
-    # Load data
-    passages = list(read_corpus(corpus_path))
-    logger.info("Loaded %d passages from %s", len(passages), corpus_path)
+    if cfg is None:
+        cfg = TrainConfig()
 
-    dataset = _passages_to_dataset(passages, positive_author_id)
+    # Load data
+    dataset = path_to_dataset(corpus_path, positive_author_id)
+    if exclude_work:
+        dataset = dataset.filter(
+            lambda row: f"{row['author_id']}.{row['work_id']}" != exclude_work
+        )
+    logger.info("Loaded %d passages from %s", len(dataset), corpus_path)
     pos_count = sum(1 for label in dataset["label"] if label == 1)
     logger.info(
         "Labels: %d positive (%s), %d negative",
@@ -173,9 +188,7 @@ def train(
     )
 
     def tokenize(examples):
-        return tokenizer(
-            examples["text"], truncation=True, max_length=cfg.max_length
-        )
+        return tokenizer(examples["text"], truncation=True, max_length=cfg.max_length)
 
     train_tok = train_ds.map(tokenize, batched=True)
     dev_tok = dev_ds.map(tokenize, batched=True)
@@ -199,7 +212,9 @@ def train(
         load_best_model_at_end=True,
         metric_for_best_model="f1",
         greater_is_better=True,
-        logging_dir=str(output_dir / "logs"),
+        logging_dir=str(cfg.train_log_dir)
+        if cfg.train_log_dir
+        else str(output_dir / "logs"),
     )
 
     trainer = Trainer(
@@ -245,16 +260,13 @@ def predict(
     Returns:
         Number of predictions written.
     """
-    passages = list(read_corpus(corpus_path))
-    dataset = _passages_to_dataset(passages, positive_author_id)
+    dataset = path_to_dataset(corpus_path, positive_author_id)
 
     tokenizer = AutoTokenizer.from_pretrained(model_dir)
     model = AutoModelForSequenceClassification.from_pretrained(model_dir)
 
     def tokenize(examples):
-        return tokenizer(
-            examples["text"], truncation=True, max_length=max_length
-        )
+        return tokenizer(examples["text"], truncation=True, max_length=max_length)
 
     tokenized = dataset.map(tokenize, batched=True)
 

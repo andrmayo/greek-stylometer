@@ -120,6 +120,18 @@ def train(
     num_epochs: Annotated[
         int, typer.Option(help="Number of training epochs.")
     ] = _TRAIN_DEFAULTS.num_epochs,
+    exclude_work: Annotated[
+        str | None,
+        typer.Option(
+            help="tlg-format id of author + work to exclude from training, e.g. tlg0001.tlg001"
+        ),
+    ] = None,
+    train_log_dir: Annotated[
+        Path | None,
+        typer.Option(
+            help="Specify dir for training logs (general logging set up in callback)"
+        ),
+    ] = None,
     seed: Annotated[int, typer.Option(help="Random seed.")] = _TRAIN_DEFAULTS.seed,
 ) -> None:
     """Train a binary BERT classifier on a corpus JSONL."""
@@ -132,9 +144,10 @@ def train(
         train_batch_size=train_batch_size,
         num_epochs=num_epochs,
         seed=seed,
+        train_log_dir=train_log_dir,
     )
     typer.echo(f"Training {cfg.model_name} on {input_path}")
-    model_dir = do_train(input_path, output_dir, positive_author, cfg)
+    model_dir = do_train(input_path, output_dir, positive_author, cfg, exclude_work)
     typer.echo(f"Model saved to {model_dir}")
 
 

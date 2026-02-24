@@ -1,14 +1,13 @@
 """Training configuration."""
 
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
 class TrainConfig:
-    """Hyperparameters for BERT fine-tuning.
-
-    Defaults match the original Galen attribution experiments
-    (pranaydeeps/Ancient-Greek-BERT, binary classification).
+    """
+    Hyperparameters for BERT fine-tuning.
     """
 
     model_name: str = "pranaydeeps/Ancient-Greek-BERT"
@@ -22,3 +21,4 @@ class TrainConfig:
     seed: int = 12345
     train_ratio: float = 0.8
     dev_ratio: float = 0.1
+    train_log_dir: Path | None = None  # None for same dir as general logging

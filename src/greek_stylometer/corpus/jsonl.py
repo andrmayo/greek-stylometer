@@ -1,7 +1,7 @@
 """JSONL read/write utilities for Passage records."""
 
-from collections.abc import Iterable, Iterator
 from pathlib import Path
+from typing import Generator, Iterable, Iterator, cast
 
 from greek_stylometer.schemas import Passage
 
@@ -23,3 +23,24 @@ def read_corpus(path: Path) -> Iterator[Passage]:
             line = line.strip()
             if line:
                 yield Passage.from_json(line)
+
+
+def get_training_dict(
+    passage: Passage,
+    positive_author_id: str,
+) -> dict[str, str | int | list[str | int]]:
+    return {
+        "text": passage.text,
+        "label": 1 if passage.author_id == positive_author_id else 0,
+        "author": passage.author,
+        "passage_idx": passage.passage_idx,
+        "author_id": passage.author_id,
+        "work_id": passage.work_id,
+    }
+
+
+def stream_passage_to_dict(
+    passages: Iterator[Passage], positive_author_id: str
+) -> Generator[dict[str, str | int]]:
+    for p in passages:
+        yield cast(dict[str, str | int], get_training_dict(p, positive_author_id))
