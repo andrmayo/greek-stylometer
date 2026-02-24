@@ -85,12 +85,12 @@ def main() -> None:
             _gcs_copy_down(arg, local_path)
             rewritten.append(str(local_path))
 
-    # Forward to the CLI
-    sys.argv = ["greek-stylometer"] + rewritten
-
     # Add logging dir usable by Vertex AI tensorboard
     if aip_tensorboard_log_dir := os.environ.get("AIP_TENSORBOARD_LOG_DIR"):
-        rewritten.extend(["--logging-dir", aip_tensorboard_log_dir])
+        rewritten.extend(["--train-log-dir", aip_tensorboard_log_dir])
+
+    # Forward to the CLI
+    sys.argv = ["greek-stylometer"] + rewritten
 
     # Typer/Click calls sys.exit(0) on success (standalone_mode=True),
     # so we catch SystemExit to ensure uploads still run.
