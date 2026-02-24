@@ -217,6 +217,7 @@ def train(
         logging_dir=str(cfg.train_log_dir)
         if cfg.train_log_dir
         else str(output_dir / "logs"),
+        report_to="tensorboard",
     )
 
     callbacks = []

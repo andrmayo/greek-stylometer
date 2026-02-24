@@ -32,12 +32,12 @@ class TestPassagesToDataset:
             _make_passage("tlg0099"),
             _make_passage("tlg0057"),
         ]
-        ds = _passages_to_dataset(passages, "tlg0057")
+        ds = _passages_to_dataset(lambda: (p for p in passages), "tlg0057")
         assert ds["label"] == [1, 0, 1]
 
     def test_preserves_text_and_author(self):
         passages = [_make_passage("tlg0057", text="hello")]
-        ds = _passages_to_dataset(passages, "tlg0057")
+        ds = _passages_to_dataset(lambda: (p for p in passages), "tlg0057")
         assert ds["text"] == ["hello"]
         assert ds["author"] == ["tlg0057"]
 
@@ -45,7 +45,7 @@ class TestPassagesToDataset:
 class TestSplitDataset:
     def test_split_sizes(self):
         passages = [_make_passage(f"a{i}") for i in range(100)]
-        ds = _passages_to_dataset(passages, "a0")
+        ds = _passages_to_dataset(lambda: (p for p in passages), "a0")
         config = TrainConfig(train_ratio=0.8, dev_ratio=0.1, seed=42)
         train, dev, test = _split_dataset(ds, config)
         assert len(train) == 80
@@ -54,7 +54,7 @@ class TestSplitDataset:
 
     def test_deterministic_with_seed(self):
         passages = [_make_passage(f"a{i}") for i in range(50)]
-        ds = _passages_to_dataset(passages, "a0")
+        ds = _passages_to_dataset(lambda: (p for p in passages), "a0")
         config = TrainConfig(seed=42)
         train1, _, _ = _split_dataset(ds, config)
         train2, _, _ = _split_dataset(ds, config)

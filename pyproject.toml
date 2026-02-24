@@ -13,6 +13,7 @@ dependencies = [
     "torch>=2.0",
     "accelerate>=1.1.0",
     "transformers>=4.40",
+    "tensorboard>=2.20.0",
 ]
 
 [project.scripts]
