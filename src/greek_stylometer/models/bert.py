@@ -6,6 +6,7 @@ a saved model directory and test-set predictions in JSONL.
 """
 
 import logging
+import os
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Iterator, cast
@@ -199,6 +200,11 @@ def train(
     output_dir.mkdir(parents=True, exist_ok=True)
     model_dir = output_dir / "model"
 
+    # logging_dir is deprecated in transformers v5+; use env var instead
+    os.environ["TENSORBOARD_LOGGING_DIR"] = (
+        str(cfg.train_log_dir) if cfg.train_log_dir else str(output_dir / "logs")
+    )
+
     training_args = TrainingArguments(
         output_dir=str(output_dir / "checkpoints"),
         learning_rate=cfg.learning_rate,
@@ -214,9 +220,6 @@ def train(
         load_best_model_at_end=True,
         metric_for_best_model="eval_loss",
         greater_is_better=False,
-        logging_dir=str(cfg.train_log_dir)
-        if cfg.train_log_dir
-        else str(output_dir / "logs"),
         report_to="tensorboard",
     )
 

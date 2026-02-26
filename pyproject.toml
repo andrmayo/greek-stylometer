@@ -32,4 +32,6 @@ dev = [
     "lxml-stubs>=0.5",
     "pytest>=8.0",
     "pyright>=1.1.408",
+    "google-cloud-aiplatform[tensorboard]>=1.139.0",
+    "tensorflow>=2.20.0",
 ]
