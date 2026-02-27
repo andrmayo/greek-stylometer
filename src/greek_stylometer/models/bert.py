@@ -22,6 +22,9 @@ from transformers import (
     EvalPrediction,
     Trainer,
     TrainingArguments,
+    TrainerCallback,
+    TrainerControl,
+    TrainerState,
 )
 
 from greek_stylometer.corpus.jsonl import read_corpus, stream_passage_to_dict
@@ -130,6 +133,62 @@ def _write_predictions(
 
     logger.info("Wrote %d predictions to %s", count, output_path)
     return count
+
+
+# ---------------------------------------------------------------------------
+# Training Callbacks
+# ---------------------------------------------------------------------------
+
+
+class TestEvalCallback(TrainerCallback):
+    def __init__(
+        self,
+        test_dataset: Dataset,
+        ignore_keys: list[str] | None = None,
+        metric_key_prefix: str = "test",
+    ):
+        self.test_dataset = test_dataset
+        self.ignore_keys = ignore_keys
+        self.metric_key_prefix = metric_key_prefix
+        self.history = []
+        self._evaluating = False
+        self.trainer = None
+
+    def _evaluate_on_testset(
+        self,
+        trainer: Trainer,
+    ) -> dict[str, float]:
+        return trainer.evaluate(
+            cast(Any, self.test_dataset),
+            self.ignore_keys,
+            self.metric_key_prefix,
+        )
+
+    def on_evaluate(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        **kwargs,
+    ):
+        _, _, _ = args, control, kwargs
+        # Recursion guard
+        if self._evaluating:
+            return
+        if not isinstance(self.trainer, Trainer):
+            logger.warning(
+                "skipping test set eval: for TestEvalCallback to work, use callback.trainer = trainer, where trainer is the trainer object with eval set up"
+            )
+            return
+
+        self._evaluating = True
+        try:
+            test_metrics = self._evaluate_on_testset(self.trainer)
+            self.history.append(
+                {"step": state.global_step, "epoch": state.epoch, **test_metrics}
+            )
+        finally:
+            self._evaluating = False
 
 
 # ---------------------------------------------------------------------------
