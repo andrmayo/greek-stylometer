@@ -18,12 +18,6 @@ docker push "$IMAGE"
 # Submit training job
 echo "Submitting Vertex AI training job..."
 
-# Create tensorboard monitoring
-TB_RESOURCE=$(gcloud ai tensorboards list --region=us-central1 --format="value(name)" --limit=1)
-if [ -z "$TB_RESOURCE" ]; then
-  gcloud ai tensorboards create --display-name="stylometry-tensorboard" --region=us-central1
-  TB_RESOURCE=$(gcloud ai tensorboards list --region=us-central1 --format="value(name)" --limit=1)
-fi
 JOB_ID=$(
   gcloud ai custom-jobs create \
     --region=us-central1 \
@@ -33,18 +27,5 @@ JOB_ID=$(
     --format="value(name)"
 )
 
-echo "Job submitted. Waiting for logs directory to appear..."
-LOGS_DIR="$BUCKET/output/logs/"
-while ! gcloud storage ls "$LOGS_DIR" &>/dev/null; do
-  sleep 30
-done
-
-echo "Logs detected. Starting TensorBoard uploader..."
-tb-gcp-uploader --tensorboard_resource_name="$TB_RESOURCE" --experiment_name=galen-finetune --logdir="$LOGS_DIR" &
-TB_PID=$!
-trap 'kill $TB_PID 2>/dev/null' EXIT
-
-echo "Monitor TensorBoard with:"
-echo "  gcloud ai tensorboards open --region=us-central1 --tensorboard=$TB_RESOURCE"
-
+echo "Job submitted: $JOB_ID"
 gcloud ai custom-jobs stream-logs "$JOB_ID" --region=us-central1
