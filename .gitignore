@@ -19,3 +19,6 @@ lime-html/
 
 # test output
 test-output/
+
+# subdirectories of model/ for finetuned models
+model/*/
