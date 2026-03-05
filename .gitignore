@@ -16,3 +16,6 @@ lime-html/
 
 # generated data
 *.jsonl
+
+# test output
+test-output/
