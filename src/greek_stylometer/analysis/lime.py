@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from lime.lime_text import LimeTextExplainer
+from tqdm import tqdm
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from greek_stylometer.schemas import Explanation, FeatureWeight, Prediction
@@ -96,7 +97,7 @@ def explain(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     count = 0
     with open(output_path, "w", encoding="utf-8") as f:
-        for pred in predictions:
+        for pred in tqdm(predictions, desc="Explaining", unit="pred"):
             exp = explainer.explain_instance(
                 pred.text,
                 classifier_fn,
@@ -124,8 +125,6 @@ def explain(
                 exp.save_to_file(str(html_dir / f"explanation_{pred.passage_idx}.html"))
 
             count += 1
-            if count % 10 == 0:
-                logger.info("Explained %d / %d", count, len(predictions))
 
     logger.info("Wrote %d explanations to %s", count, output_path)
     return count

@@ -16,9 +16,14 @@ lime-html/
 
 # generated data
 *.jsonl
+*.json
 
 # test output
 test-output/
 
 # subdirectories of model/ for finetuned models
 model/*/
+
+# contents of html-explanations dir
+html-explanations/*
+!html-explanations/.gitkeep

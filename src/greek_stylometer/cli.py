@@ -4,7 +4,7 @@ Thin layer: parse arguments, delegate to module functions, print results.
 """
 
 import logging
-
+import os
 from enum import Enum
 from pathlib import Path
 from typing import Annotated, assert_never
@@ -287,12 +287,15 @@ def explain(
         int, typer.Option(help="Number of perturbed samples for LIME.")
     ] = 5000,
     html_dir: Annotated[
-        Path | None, typer.Option(help="Directory to save HTML visualizations.")
-    ] = None,
+        Path, typer.Option(help="Directory to save HTML visualizations.")
+    ] = Path(os.getcwd()) / "html-explanations",
     seed: Annotated[int, typer.Option(help="Random seed for LIME.")] = 1234,
 ) -> None:
     """Generate LIME explanations for model predictions."""
     from greek_stylometer.analysis.lime import explain as do_explain
+
+    if not html_dir.exists():
+        html_dir.mkdir(exist_ok=True, parents=True)
 
     typer.echo(f"Generating LIME explanations for {input_path}")
     count = do_explain(
