@@ -16,6 +16,9 @@ class TrainConfig:
     train_batch_size: int = 16
     eval_batch_size: int = 16
     num_epochs: int = 6  # ~ 450 steps per epoch
+    eval_strategy: str = "steps"
+    save_strategy: str = "steps"
+    load_best_model_at_end: bool = True
     eval_steps: int = 25
     save_steps: int = 100
     seed: int = 12345

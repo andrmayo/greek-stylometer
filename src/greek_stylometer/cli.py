@@ -152,6 +152,84 @@ def train(
 
 
 @app.command()
+def monte_carlo(
+    input_path: Annotated[
+        Path, typer.Option("--input", exists=True, help="Input corpus JSONL file.")
+    ],
+    output_dir: Annotated[
+        Path, typer.Option(help="Output directory for model and predictions.")
+    ],
+    positive_author: Annotated[
+        str, typer.Option(help="Author ID for the positive class (e.g. tlg0057).")
+    ],
+    model_name: Annotated[
+        str, typer.Option(help="HuggingFace model name or path.")
+    ] = _TRAIN_DEFAULTS.model_name,
+    num_runs: Annotated[
+        int,
+        typer.Option(help="Number of separate models to train for cross validation."),
+    ] = 5,
+    train_full_model: Annotated[
+        bool,
+        typer.Option(
+            help="Use cross validation metrics to train final model on full data."
+        ),
+    ] = True,
+    max_length: Annotated[
+        int, typer.Option(help="Maximum token length.")
+    ] = _TRAIN_DEFAULTS.max_length,
+    learning_rate: Annotated[
+        float, typer.Option(help="Learning rate.")
+    ] = _TRAIN_DEFAULTS.learning_rate,
+    train_batch_size: Annotated[
+        int, typer.Option(help="Training batch size.")
+    ] = _TRAIN_DEFAULTS.train_batch_size,
+    num_epochs: Annotated[
+        int, typer.Option(help="Number of training epochs.")
+    ] = _TRAIN_DEFAULTS.num_epochs,
+    exclude_work: Annotated[
+        str | None,
+        typer.Option(
+            help="tlg-format id of author + work to exclude from training, e.g. tlg0001.tlg001"
+        ),
+    ] = None,
+    train_log_dir: Annotated[
+        Path | None,
+        typer.Option(
+            help="Specify dir for training logs (general logging set up in callback)"
+        ),
+    ] = None,
+    seed: Annotated[int, typer.Option(help="Random seed.")] = _TRAIN_DEFAULTS.seed,
+) -> None:
+    """Train a binary BERT classifier on a corpus JSONL."""
+    from greek_stylometer.models.bert import monte_carlo_train
+
+    cfg = TrainConfig(
+        model_name=model_name,
+        max_length=max_length,
+        learning_rate=learning_rate,
+        train_batch_size=train_batch_size,
+        num_epochs=num_epochs,
+        seed=seed,
+        train_log_dir=train_log_dir,
+    )
+    typer.echo(
+        f"Using {cfg.model_name} to run Monte-Carlo cross validation, finetuning on {input_path}"
+    )
+    model_dir = monte_carlo_train(
+        input_path,
+        output_dir,
+        positive_author,
+        num_runs,
+        train_full_model,
+        cfg,
+        exclude_work,
+    )
+    if model_dir:
+        typer.echo(f"Model saved to {model_dir}")
+
+
+@app.command()
 def predict(
     input_path: Annotated[
         Path, typer.Option("--input", exists=True, help="Input corpus JSONL file.")
@@ -170,7 +248,7 @@ def predict(
     from greek_stylometer.models.bert import predict as do_predict
 
     typer.echo(f"Predicting with model from {model_dir}")
-    count = do_predict(
+    count, _ = do_predict(
         input_path, model_dir, output, positive_author, max_length, batch_size
     )
     typer.echo(f"Wrote {count} predictions to {output}")

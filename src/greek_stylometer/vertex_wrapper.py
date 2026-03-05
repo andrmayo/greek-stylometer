@@ -10,6 +10,15 @@ Usage inside container::
         --input gs://my-bucket/corpus.jsonl \
         --output-dir gs://my-bucket/output \
         --positive-author tlg0057
+
+For monte-carlo val and train::
+
+    python -m greek_stylometer.vertex_wrapper monte-carlo \
+        --input gs://my-bucket/corpus.jsonl \
+        --output-dir gs://my-bucket/monte-carlo \
+        --num-runs 5 \
+        --positive-author tlg0057
+
 """
 
 import os
@@ -23,6 +32,8 @@ from greek_stylometer.cli import main as cli_main
 _INPUT_FLAGS = {"--input", "--model-dir"}
 # CLI flags that point to output files/dirs
 _OUTPUT_FLAGS = {"--output", "--output-dir"}
+# CLI flags with GCS paths that should be passed through as-is
+_PASSTHROUGH_FLAGS = {"--train-log-dir"}
 
 
 def _gcs_copy_down(gcs_path: str, local_path: Path) -> None:
@@ -65,7 +76,9 @@ def main() -> None:
 
         prev = args[i - 1] if i > 0 else ""
 
-        if prev in _INPUT_FLAGS:
+        if prev in _PASSTHROUGH_FLAGS:
+            rewritten.append(arg)
+        elif prev in _INPUT_FLAGS:
             local_path = local_dir / f"input_{counter}"
             counter += 1
             print(f"Downloading {arg} → {local_path}")

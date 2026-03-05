@@ -122,3 +122,27 @@ class ActivationManifestEntry:
     @classmethod
     def from_json(cls, line: str) -> Self:
         return cls(**json.loads(line))
+
+
+@dataclass
+class MonteCarloAggregation:
+    avg_best_step: int  # simple average of best step / epoch over runs
+    avg_best_epoch: int
+    best_aggregate_step: int  # step / epoch that gives best average test loss
+    best_aggregate_epoch: int
+    avg_dev_loss_for_best_step: float  # using best_aggregate_step
+    avg_dev_F1_for_best_step: float
+    avg_dev_precision_for_best_step: float
+    avg_dev_recall_for_best_step: float
+    avg_test_loss_for_best_step: float
+    avg_test_F1_for_best_step: float
+    avg_test_precision_for_best_step: float
+    avg_test_recall_for_best_step: float
+    best_agg_dev_losses: list[
+        float
+    ]  # dev loss for best step (determined across runs) for each run
+    best_agg_dev_F1s: list[float]
+    best_per_run_test_steps: list[int]
+    best_per_run_test_epochs: list[int]
+    best_agg_test_losses: list[float]
+    best_agg_test_F1s: list[float]
