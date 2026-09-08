@@ -3,9 +3,7 @@
 Authorship attribution and interpretability toolkit for Ancient Greek texts.
 
 Classifies passages using fine-tuned BERT models, then investigates _why_ the
-model makes the decisions it does — via LIME in Python and sparse autoencoders
-in Common Lisp. All pipeline stages communicate through JSONL, keeping the
-Python and Lisp sides decoupled.
+model makes the decisions it does — via LIME in Python.
 
 ## Install
 
@@ -113,7 +111,7 @@ greek-stylometer explain \
 
 ### Export activations
 
-Extract CLS/token embeddings for downstream analysis (e.g. sparse autoencoders):
+Extract CLS/token embeddings for downstream analysis:
 
 ```
 
