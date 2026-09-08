@@ -17,6 +17,7 @@ lime-html/
 # generated data
 *.jsonl
 *.json
+!output/mccv/mc_cv_stats.json
 
 # test output
 test-output/
