@@ -78,7 +78,8 @@ def chunk(
     ],
     output: Annotated[Path, typer.Option(help="Output chunked JSONL file.")],
     tokenizer: Annotated[str, typer.Option(help="HuggingFace tokenizer name or path.")],
-    max_tokens: Annotated[int, typer.Option(help="Target chunk size in tokens.")] = 512,
+    # 512 includes [CLS] and [SEP] tokens, therefore 510 is the maximum text token length
+    max_tokens: Annotated[int, typer.Option(help="Target chunk size in tokens.")] = 510,
     overlap: Annotated[
         int,
         typer.Option(
@@ -362,7 +363,7 @@ def classify(
     positive_author: Annotated[
         str, typer.Option(help="Author ID for the positive class (e.g. tlg0057).")
     ],
-    max_tokens: Annotated[int, typer.Option(help="Chunk size in tokens.")] = 512,
+    max_tokens: Annotated[int, typer.Option(help="Chunk size in tokens.")] = 510,
     overlap: Annotated[
         int | None,
         typer.Option(help="Token overlap between chunks. Defaults to max-tokens / 4."),

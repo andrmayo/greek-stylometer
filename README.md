@@ -49,7 +49,7 @@ greek-stylometer chunk \
  --input corpus.jsonl \
  --output corpus-chunked.jsonl \
  --tokenizer pranaydeeps/Ancient-Greek-BERT \
- --max-tokens 512
+ --max-tokens 510
 
 ```
 

@@ -21,7 +21,7 @@ def _work_key(passage: Passage) -> tuple[str, str]:
 def chunk_passages(
     passages: Iterator[Passage],
     tokenizer,
-    max_tokens: int = 512,
+    max_tokens: int = 510,
     overlap: int = 0,
 ) -> Iterator[Passage]:
     """Re-chunk passages to a uniform token length.
@@ -79,7 +79,7 @@ def chunk_corpus_file(
     input_path: Path,
     output_path: Path,
     tokenizer_name: str,
-    max_tokens: int = 512,
+    max_tokens: int = 510,  # 512 with [CLS] and [SEP]
     overlap: int = 0,
 ) -> int:
     """Read a corpus JSONL, re-chunk, and write to a new JSONL.
